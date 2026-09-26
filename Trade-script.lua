@@ -1,4 +1,4 @@
--- Veltrix Trade Hub (by : b8zm) - MM2 Target Trade Control Final Fix
+-- Veltrix Trade Hub (by : b8zm) - MM2 Trade Control Clean & Fixed
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
@@ -40,7 +40,7 @@ titleLbl.ZIndex = 11
 titleLbl.Parent = mainFrame
 
 local function createControlBtn(name, posY, initialColor, callback)
-	val btn = Instance.new("TextButton")
+	local btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, -16, 0, 36)
 	btn.Position = UDim2.new(0, 8, 0, posY)
 	btn.BackgroundColor3 = initialColor
@@ -58,14 +58,13 @@ local function createControlBtn(name, posY, initialColor, callback)
 	return btn
 end
 
--- 1. زر إضافة أقوى أسلحة الشخص الآخر (بحث شامل ومضمون)
+-- 1. زر إضافة أقوى أسلحة الشخص الآخر
 createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), function()
 	pcall(function()
 		local tradeRemote = ReplicatedStorage:FindFirstChild("Trade", true) or ReplicatedStorage:FindFirstChild("OfferItem", true) or ReplicatedStorage:FindFirstChild("AddOffer", true)
 		
 		for _, p in ipairs(Players:GetPlayers()) do
 			if p ~= LocalPlayer then
-				-- فحص الحقيبة الأساسية والخزنة الخاصة باللاعب
 				local containers = {p.Backpack}
 				local char = p.Character
 				if char then table.insert(containers, char) end
