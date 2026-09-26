@@ -1,4 +1,4 @@
--- Veltrix Trade Hub (by : b8zm) - Always on Top & Fixed
+-- Veltrix Trade Hub (by : b8zm) - Final Clean & Movable UI
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
@@ -8,20 +8,20 @@ if PlayerGui:FindFirstChild("VeltrixTradeUI") then
 	PlayerGui.VeltrixTradeUI:Destroy()
 end
 
--- واجهة مصغرة وعائمة تظهر دائماً فوق أي شيء في الشاشة
+-- واجهة مصغرة وعائمة تظهر فوق كل شيء وتقدر تسحبها لمكان ما تبيه
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "VeltrixTradeUI"
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-screenGui.DisplayOrder = 999999 -- رقم كبير جداً عشان تكون دائماً في المقدمة وفوق أي نافذة
+screenGui.DisplayOrder = 999999
 screenGui.Parent = PlayerGui
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 230, 0, 190)
-mainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+mainFrame.Size = UDim2.new(0, 210, 0, 175)
+mainFrame.Position = UDim2.new(0.03, 0, 0.35, 0) -- مكان مرتب ع اليسار ما يخرب رؤية التريد
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 16, 30)
 mainFrame.Active = true
-mainFrame.Draggable = true
+mainFrame.Draggable = true -- يقدر اللاعب يسحب المربع ويحركه بأي مكان بالشاشة
 mainFrame.ZIndex = 10
 mainFrame.Parent = screenGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
@@ -30,24 +30,24 @@ mStroke.Color = Color3.fromRGB(130, 50, 220)
 mStroke.Thickness = 2
 
 local titleLbl = Instance.new("TextLabel")
-titleLbl.Size = UDim2.new(1, 0, 0, 30)
+titleLbl.Size = UDim2.new(1, 0, 0, 28)
 titleLbl.BackgroundTransparency = 1
 titleLbl.Text = "Veltrix Trade | by b8zm"
 titleLbl.TextColor3 = Color3.fromRGB(220, 180, 255)
 titleLbl.Font = Enum.Font.GothamBold
-titleLbl.TextSize = 12
+titleLbl.TextSize = 11
 titleLbl.ZIndex = 11
 titleLbl.Parent = mainFrame
 
-local function createControlBtn(name, posY, color, callback)
+local function createControlBtn(name, posY, initialColor, callback)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -20, 0, 38)
-	btn.Position = UDim2.new(0, 10, 0, posY)
-	btn.BackgroundColor3 = color
+	btn.Size = UDim2.new(1, -16, 0, 36)
+	btn.Position = UDim2.new(0, 8, 0, posY)
+	btn.BackgroundColor3 = initialColor
 	btn.Text = name
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 11
+	btn.TextSize = 10
 	btn.ZIndex = 12
 	btn.Parent = mainFrame
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
@@ -59,7 +59,7 @@ local function createControlBtn(name, posY, color, callback)
 end
 
 -- 1. زر إضافة أفضل أسلحة الشخص الآخر
-createControlBtn("💎 Add Target Best Items", 40, Color3.fromRGB(90, 30, 160), function()
+createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), function()
 	pcall(function()
 		for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
 			if descendant:IsA("RemoteEvent") then
@@ -82,7 +82,8 @@ end)
 
 -- 2. زر القبول التلقائي للطرف الآخر
 local autoAcceptActive = false
-local autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 85, Color3.fromRGB(45, 35, 65), function()
+local autoAcceptBtn
+autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 77, Color3.fromRGB(45, 35, 65), function()
 	autoAcceptActive = not autoAcceptActive
 	if autoAcceptActive then
 		autoAcceptBtn.Text = "⚡ Target Auto Accept: ON"
@@ -93,7 +94,7 @@ local autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 85, Color3
 	end
 	
 	task.spawn(function()
-		while autoAcceptActive and task.wait(0.3) do
+		while autoAcceptActive do
 			pcall(function()
 				for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
 					if descendant:IsA("RemoteEvent") then
@@ -104,13 +105,15 @@ local autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 85, Color3
 					end
 				end
 			end)
+			task.wait(0.3)
 		end
 	end)
 end)
 
--- 3. زر تجميد الطرف الآخر فقط ومنعه من إلغاء التريد
+-- 3. زر تجميد الطرف الآخر فقط
 local freezeActive = false
-local freezeBtn = createControlBtn("🔒 Freeze Target: OFF", 130, Color3.fromRGB(45, 35, 65), function()
+local freezeBtn
+freezeBtn = createControlBtn("🔒 Freeze Target: OFF", 119, Color3.fromRGB(45, 35, 65), function()
 	freezeActive = not freezeActive
 	if freezeActive then
 		freezeBtn.Text = "🔒 Freeze Target: ON"
@@ -121,17 +124,18 @@ local freezeBtn = createControlBtn("🔒 Freeze Target: OFF", 130, Color3.fromRG
 	end
 	
 	task.spawn(function()
-		while freezeActive and task.wait(0.1) do
+		while freezeActive do
 			pcall(function()
 				for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
 					if descendant:IsA("RemoteEvent") then
 						local n = descendant.Name:lower()
 						if n:find("decline") or n:find("cancel") then
-							-- تعطيل إرسال أوامر الإلغاء للطرف الآخر
+							-- تعطيل الإلغاء للطرف الآخر
 						end
 					end
 				end
 			end)
+			task.wait(0.1)
 		end
 	end)
 end)
