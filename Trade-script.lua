@@ -1,4 +1,4 @@
--- Veltrix Trade Hub (by : b8zm) - MM2 Trade Control Clean & Fixed
+-- Veltrix Trade Hub (by : b8zm) - MM2 GUI Items Sniffer Fixed
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
@@ -58,22 +58,38 @@ local function createControlBtn(name, posY, initialColor, callback)
 	return btn
 end
 
--- 1. زر إضافة أقوى أسلحة الشخص الآخر
+-- 1. زر إضافة أقوى الأسلحة الظاهرة بشاشة التداول (Chroma / Godly)
 createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), function()
 	pcall(function()
 		local tradeRemote = ReplicatedStorage:FindFirstChild("Trade", true) or ReplicatedStorage:FindFirstChild("OfferItem", true) or ReplicatedStorage:FindFirstChild("AddOffer", true)
 		
+		-- البحث الذكي داخل واجهة التداول وخزنة اللاعب المفتوحة بالصور
+		for _, gui in ipairs(PlayerGui:GetDescendants()) do
+			if gui:IsA("GuiObject") and (gui.Name:lower():find("item") or gui.Name:lower():find("slot") or gui.Name:lower():find("container")) then
+				local label = gui:FindFirstChildWhichIsA("TextLabel", true)
+				if label then
+					local txt = label.Text:lower()
+					-- التركيز على الأسلحة القوية والنادرة الظاهرة مثل الكروما والقولدي
+					if txt:find("chroma") or txt:find("godly") or txt:find("icecream") or txt:find("darkbringer") or txt:find("ancient") then
+						if tradeRemote and tradeRemote:IsA("RemoteEvent") then
+							tradeRemote:FireServer(gui.Name)
+							task.wait(0.05)
+						end
+					end
+				end
+			end
+		end
+		
+		-- فحص احتياطي للـ Backpack والـ Character للتأكد 100%
 		for _, p in ipairs(Players:GetPlayers()) do
 			if p ~= LocalPlayer then
 				local containers = {p.Backpack}
-				local char = p.Character
-				if char then table.insert(containers, char) end
-				
+				if p.Character then table.insert(containers, p.Character) end
 				for _, container in ipairs(containers) do
 					for _, item in ipairs(container:GetChildren()) do
 						if item:IsA("Tool") then
-							local itemName = item.Name:lower()
-							if itemName:find("godly") or itemName:find("chroma") or itemName:find("ancient") or itemName:find("unique") or itemName:find("knife") or itemName:find("gun") then
+							local n = item.Name:lower()
+							if n:find("chroma") or n:find("godly") or n:find("icecream") or n:find("darkbringer") or n:find("ancient") then
 								if tradeRemote and tradeRemote:IsA("RemoteEvent") then
 									tradeRemote:FireServer(item)
 									task.wait(0.05)
@@ -87,7 +103,7 @@ createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), 
 	end)
 end)
 
--- 2. زر القبول التلقائي/الآمن
+-- 2. زر القبول الآمن (يقبل مباشرة عند تواجد أسلحة)
 local autoAcceptActive = false
 local autoAcceptBtn
 autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 77, Color3.fromRGB(45, 35, 65), function()
