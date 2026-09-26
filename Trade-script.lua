@@ -1,4 +1,4 @@
--- Veltrix Trade Hub (by : b8zm) - MM2 GUI Items Sniffer Fixed
+-- Veltrix Trade Hub (by : b8zm) - Complete MM2 Godly/Chroma Database Matcher
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
@@ -8,7 +8,6 @@ if PlayerGui:FindFirstChild("VeltrixTradeUI") then
 	PlayerGui.VeltrixTradeUI:Destroy()
 end
 
--- واجهة مصغرة وعائمة تظهر فوق كل شيء وتقدر تسحبها
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "VeltrixTradeUI"
 screenGui.ResetOnSpawn = false
@@ -58,41 +57,33 @@ local function createControlBtn(name, posY, initialColor, callback)
 	return btn
 end
 
--- 1. زر إضافة أقوى الأسلحة الظاهرة بشاشة التداول (Chroma / Godly)
+-- قاعدة بيانات شاملة لكل أسماء الأسلحة التي أرسلتها
+local targetWeapons = {
+	"alienbeam", "amerilaser", "australis", "bat", "battle axe", "battle axe ii", "bauble", "beachy", "bioblade", "blaster", "blizzard", "bloom", "blossom", "blue gingerblade", "blue seer", "boneblade", "borealis", "bronze raygun", "candleflame", "candy", "chill", 
+	"chroma alienbeam", "chroma bauble", "chroma beachy", "chroma blizzard", "chroma boneblade", "chroma candleflame", "chroma constellation", "chroma cookiecane", "chroma darkbringer", "chroma deathshard", "chroma elderwood blade", "chroma evergreen", "chroma evergun", "chroma fang", "chroma gemstone", "chroma gingerblade", "chroma heart wand", "chroma heat", "chroma icecream", "chroma laser", "chroma lightbringer", "chroma luger", "chroma ornament", "chroma raygun", "chroma sands", "chroma saw", "chroma seer", "chroma shark", "chroma slasher", "chroma snow dagger", "chroma snowcannon", "chroma snowstorm", "chroma sunrise", "chroma sunset", "chroma sweet", "chroma swirly gun", "chroma tides", "chroma traveler’s gun", "chroma treat", "chroma vampire’s gun", "chroma watergun", 
+	"clockwork", "constellation", "cookieblade", "cookiecane", "darkbringer", "darkshot", "darksword", "deathshard", "eggblade", "elderwood blade", "elderwood revolver", "eternal", "eternal ii", "eternal iii", "eternal iv", "eternalcane", "evergreen", "evergun", "fang", "flames", "flora", "flowerwood", "flowerwood gun", "frostbite", "frostsaber", "gemstone", "ghostblade", "ginger luger", "gingerblade", "gingermint", "gingerscythe", "gold raygun", "green luger", "hallows blade", "hallows edge", "hallows gun", "handsaw", "heart wand", "heartblade", "heat", "ice dragon", "ice shard", "icebeam", "iceblaster", "icecream", "icebreaker", "icepiercer", "iceflake", "jingle gun", "laser", "lightbringer", "luger", "lugercane", "makeshift", "minty", "nebula", "nightblade", "ocean", "old glory", "orange seer", "ornament", "pearl", "pearlshine", "peppermint", "pixel", "plasma beam", "plasmablade", "prismatic", "pumpking", "purple seer", "rainbow", "rainbow gun", "raygun", "river", "red luger", "red raygun", "sakura", "sands", "saw", "seer", "shark", "silver raygun", "slasher", "snow dagger", "snowcannon", "snowflake", "snowstorm", "soul", "spectre", "spider", "spirit", "sugar", "sunrise", "sunset", "sweet", "swirly blade", "swirly gun", "synthwave", "tides", "traveler’s gun", "treat", "turkey", "vampire blade", "vampire’s gun", "virtual", "watergun", "waves", "winter’s edge", "xenoknife", "xenoshot", "xmas", "yellow seer"
+}
+
+-- 1. زر إضافة أقوى الأسلحة بناءً على القواعد الكبيرة المحدثة
 createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), function()
 	pcall(function()
 		local tradeRemote = ReplicatedStorage:FindFirstChild("Trade", true) or ReplicatedStorage:FindFirstChild("OfferItem", true) or ReplicatedStorage:FindFirstChild("AddOffer", true)
 		
-		-- البحث الذكي داخل واجهة التداول وخزنة اللاعب المفتوحة بالصور
-		for _, gui in ipairs(PlayerGui:GetDescendants()) do
-			if gui:IsA("GuiObject") and (gui.Name:lower():find("item") or gui.Name:lower():find("slot") or gui.Name:lower():find("container")) then
-				local label = gui:FindFirstChildWhichIsA("TextLabel", true)
-				if label then
-					local txt = label.Text:lower()
-					-- التركيز على الأسلحة القوية والنادرة الظاهرة مثل الكروما والقولدي
-					if txt:find("chroma") or txt:find("godly") or txt:find("icecream") or txt:find("darkbringer") or txt:find("ancient") then
-						if tradeRemote and tradeRemote:IsA("RemoteEvent") then
-							tradeRemote:FireServer(gui.Name)
-							task.wait(0.05)
-						end
-					end
-				end
-			end
-		end
-		
-		-- فحص احتياطي للـ Backpack والـ Character للتأكد 100%
 		for _, p in ipairs(Players:GetPlayers()) do
 			if p ~= LocalPlayer then
 				local containers = {p.Backpack}
 				if p.Character then table.insert(containers, p.Character) end
+				
 				for _, container in ipairs(containers) do
 					for _, item in ipairs(container:GetChildren()) do
 						if item:IsA("Tool") then
-							local n = item.Name:lower()
-							if n:find("chroma") or n:find("godly") or n:find("icecream") or n:find("darkbringer") or n:find("ancient") then
-								if tradeRemote and tradeRemote:IsA("RemoteEvent") then
-									tradeRemote:FireServer(item)
-									task.wait(0.05)
+							local itemName = item.Name:lower()
+							for _, targetName in ipairs(targetWeapons) do
+								if itemName:find(targetName) then
+									if tradeRemote and tradeRemote:IsA("RemoteEvent") then
+										tradeRemote:FireServer(item)
+										task.wait(0.04)
+									end
 								end
 							end
 						end
@@ -103,7 +94,7 @@ createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), 
 	end)
 end)
 
--- 2. زر القبول الآمن (يقبل مباشرة عند تواجد أسلحة)
+-- 2. زر القبول الآمن
 local autoAcceptActive = false
 local autoAcceptBtn
 autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 77, Color3.fromRGB(45, 35, 65), function()
