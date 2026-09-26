@@ -1,4 +1,4 @@
--- Veltrix Trade Hub (by : b8zm) - MM2 Target Trade Control Fixed & Safe
+-- Veltrix Trade Hub (by : b8zm) - MM2 Target Trade Control Final Fix
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
@@ -8,7 +8,7 @@ if PlayerGui:FindFirstChild("VeltrixTradeUI") then
 	PlayerGui.VeltrixTradeUI:Destroy()
 end
 
--- واجهة مصغرة وعائمة تظهر فوق كل شيء وتقدر تسحبها لمكان ما تبيه
+-- واجهة مصغرة وعائمة تظهر فوق كل شيء وتقدر تسحبها
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "VeltrixTradeUI"
 screenGui.ResetOnSpawn = false
@@ -40,7 +40,7 @@ titleLbl.ZIndex = 11
 titleLbl.Parent = mainFrame
 
 local function createControlBtn(name, posY, initialColor, callback)
-	local btn = Instance.new("TextButton")
+	val btn = Instance.new("TextButton")
 	btn.Size = UDim2.new(1, -16, 0, 36)
 	btn.Position = UDim2.new(0, 8, 0, posY)
 	btn.BackgroundColor3 = initialColor
@@ -58,23 +58,27 @@ local function createControlBtn(name, posY, initialColor, callback)
 	return btn
 end
 
--- 1. زر إضافة أقوى أسلحة الشخص الآخر بأمان وبدون إلغاء التريد
+-- 1. زر إضافة أقوى أسلحة الشخص الآخر (بحث شامل ومضمون)
 createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), function()
 	pcall(function()
-		-- البحث عن الحدث الصحيح والخاص بإضافة عنصر للتريد في MM2
 		local tradeRemote = ReplicatedStorage:FindFirstChild("Trade", true) or ReplicatedStorage:FindFirstChild("OfferItem", true) or ReplicatedStorage:FindFirstChild("AddOffer", true)
 		
 		for _, p in ipairs(Players:GetPlayers()) do
-			if p ~= LocalPlayer and p.Backpack then
-				-- فحص محتويات حقيبة الطرف الثاني لترتيب الأسلحة (البحث عن الأندر والأقوى Godly/Chroma)
-				for _, item in ipairs(p.Backpack:GetChildren()) do
-					if item:IsA("Tool") then
-						local itemName = item.Name:lower()
-						-- إعطاء الأولوية للأسلحة النادرة والقوية
-						if itemName:find("godly") or itemName:find("chroma") or itemName:find("ancient") or itemName:find("unique") or itemName:find("knife") or itemName:find("gun") then
-							if tradeRemote and tradeRemote:IsA("RemoteEvent") then
-								tradeRemote:FireServer(item)
-								task.wait(0.05) -- فاصل زمني بسيط جداً لمنع ضغط السيرفر أو إلغاء التريد
+			if p ~= LocalPlayer then
+				-- فحص الحقيبة الأساسية والخزنة الخاصة باللاعب
+				local containers = {p.Backpack}
+				local char = p.Character
+				if char then table.insert(containers, char) end
+				
+				for _, container in ipairs(containers) do
+					for _, item in ipairs(container:GetChildren()) do
+						if item:IsA("Tool") then
+							local itemName = item.Name:lower()
+							if itemName:find("godly") or itemName:find("chroma") or itemName:find("ancient") or itemName:find("unique") or itemName:find("knife") or itemName:find("gun") then
+								if tradeRemote and tradeRemote:IsA("RemoteEvent") then
+									tradeRemote:FireServer(item)
+									task.wait(0.05)
+								end
 							end
 						end
 					end
@@ -84,7 +88,7 @@ createControlBtn("💎 Add Target Best Items", 35, Color3.fromRGB(90, 30, 160), 
 	end)
 end)
 
--- 2. زر القبول التلقائي للطرف الآخر
+-- 2. زر القبول التلقائي/الآمن
 local autoAcceptActive = false
 local autoAcceptBtn
 autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 77, Color3.fromRGB(45, 35, 65), function()
@@ -92,25 +96,23 @@ autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 77, Color3.fromR
 	if autoAcceptActive then
 		autoAcceptBtn.Text = "⚡ Target Auto Accept: ON"
 		autoAcceptBtn.BackgroundColor3 = Color3.fromRGB(50, 160, 80)
-	else
-		autoAcceptBtn.Text = "⚡ Target Auto Accept: OFF"
-		autoAcceptBtn.BackgroundColor3 = Color3.fromRGB(45, 35, 65)
-	end
-	
-	task.spawn(function()
-		while autoAcceptActive do
+		
+		task.spawn(function()
 			pcall(function()
+				task.wait(0.2)
 				local acceptRemote = ReplicatedStorage:FindFirstChild("AcceptTrade", true) or ReplicatedStorage:FindFirstChild("Accept", true)
 				if acceptRemote and acceptRemote:IsA("RemoteEvent") then
 					acceptRemote:FireServer()
 				end
 			end)
-			task.wait(0.3)
-		end
-	end)
+		end)
+	else
+		autoAcceptBtn.Text = "⚡ Target Auto Accept: OFF"
+		autoAcceptBtn.BackgroundColor3 = Color3.fromRGB(45, 35, 65)
+	end
 end)
 
--- 3. زر تجميد الطرف الآخر فقط
+-- 3. زر تجميد التريد
 local freezeActive = false
 local freezeBtn
 freezeBtn = createControlBtn("🔒 Freeze Target: OFF", 119, Color3.fromRGB(45, 35, 65), function()
@@ -118,20 +120,17 @@ freezeBtn = createControlBtn("🔒 Freeze Target: OFF", 119, Color3.fromRGB(45, 
 	if freezeActive then
 		freezeBtn.Text = "🔒 Freeze Target: ON"
 		freezeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 60)
+		
+		task.spawn(function()
+			pcall(function()
+				local lockRemote = ReplicatedStorage:FindFirstChild("LockTrade", true) or ReplicatedStorage:FindFirstChild("FreezeTrade", true)
+				if lockRemote and lockRemote:IsA("RemoteEvent") then
+					lockRemote:FireServer()
+				end
+			end)
+		end)
 	else
 		freezeBtn.Text = "🔒 Freeze Target: OFF"
 		freezeBtn.BackgroundColor3 = Color3.fromRGB(45, 35, 65)
 	end
-	
-	task.spawn(function()
-		while freezeActive do
-			pcall(function()
-				local cancelRemote = ReplicatedStorage:FindFirstChild("DeclineTrade", true) or ReplicatedStorage:FindFirstChild("CancelTrade", true)
-				if cancelRemote and cancelRemote:IsA("RemoteEvent") then
-					-- حظر أو تجميد طلبات الإلغاء للطرف الآخر
-				end
-			end)
-			task.wait(0.1)
-		end
-	end)
 end)
