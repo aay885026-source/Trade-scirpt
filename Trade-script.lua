@@ -1,4 +1,4 @@
--- Veltrix Trade Hub (by : b8zm) - MM2 Target Trade Control
+-- Veltrix Trade Hub (by : b8zm) - Always on Top & Fixed
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
@@ -8,10 +8,12 @@ if PlayerGui:FindFirstChild("VeltrixTradeUI") then
 	PlayerGui.VeltrixTradeUI:Destroy()
 end
 
--- واجهة مصغرة وعائمة تحتوي على الأزرار المطلوبة
+-- واجهة مصغرة وعائمة تظهر دائماً فوق أي شيء في الشاشة
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "VeltrixTradeUI"
 screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+screenGui.DisplayOrder = 999999 -- رقم كبير جداً عشان تكون دائماً في المقدمة وفوق أي نافذة
 screenGui.Parent = PlayerGui
 
 local mainFrame = Instance.new("Frame")
@@ -20,6 +22,7 @@ mainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 16, 30)
 mainFrame.Active = true
 mainFrame.Draggable = true
+mainFrame.ZIndex = 10
 mainFrame.Parent = screenGui
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
 local mStroke = Instance.new("UIStroke", mainFrame)
@@ -33,6 +36,7 @@ titleLbl.Text = "Veltrix Trade | by b8zm"
 titleLbl.TextColor3 = Color3.fromRGB(220, 180, 255)
 titleLbl.Font = Enum.Font.GothamBold
 titleLbl.TextSize = 12
+titleLbl.ZIndex = 11
 titleLbl.Parent = mainFrame
 
 local function createControlBtn(name, posY, color, callback)
@@ -44,24 +48,30 @@ local function createControlBtn(name, posY, color, callback)
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 11
+	btn.ZIndex = 12
 	btn.Parent = mainFrame
 	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-	btn.MouseButton1Click:Connect(callback)
+	
+	btn.MouseButton1Click:Connect(function()
+		task.spawn(callback)
+	end)
 	return btn
 end
 
--- 1. إضافة أفضل أسلحة الشخص الآخر إلى التريد
+-- 1. زر إضافة أفضل أسلحة الشخص الآخر
 createControlBtn("💎 Add Target Best Items", 40, Color3.fromRGB(90, 30, 160), function()
 	pcall(function()
-		-- البحث عن اللاعب الآخر في جلسة التريد الحالية
-		for _, p in ipairs(Players:GetPlayers()) do
-			if p ~= LocalPlayer then
-				-- فحص أسلحة الطرف الآخر وإضافة الأندر منها (Godlies/Chromas) عبر ريموتات التريد
-				for _, item in ipairs(p.Backpack:GetChildren()) do
-					if item:IsA("Tool") then
-						local addRemote = ReplicatedStorage:FindFirstChild("Trade", true) or ReplicatedStorage:FindFirstChild("AddOffer", true)
-						if addRemote and addRemote:IsA("RemoteEvent") then
-							addRemote:FireServer(item)
+		for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
+			if descendant:IsA("RemoteEvent") then
+				local n = descendant.Name:lower()
+				if n:find("trade") or n:find("offer") or n:find("item") then
+					for _, p in ipairs(Players:GetPlayers()) do
+						if p ~= LocalPlayer and p.Backpack then
+							for _, item in ipairs(p.Backpack:GetChildren()) do
+								if item:IsA("Tool") then
+									descendant:FireServer(item)
+								end
+							end
 						end
 					end
 				end
@@ -70,7 +80,7 @@ createControlBtn("💎 Add Target Best Items", 40, Color3.fromRGB(90, 30, 160), 
 	end)
 end)
 
--- 2. قبول تلقائي من الطرف الآخر (Auto Accept for Target)
+-- 2. زر القبول التلقائي للطرف الآخر
 local autoAcceptActive = false
 local autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 85, Color3.fromRGB(45, 35, 65), function()
 	autoAcceptActive = not autoAcceptActive
@@ -85,17 +95,20 @@ local autoAcceptBtn = createControlBtn("⚡ Target Auto Accept: OFF", 85, Color3
 	task.spawn(function()
 		while autoAcceptActive and task.wait(0.3) do
 			pcall(function()
-				-- إجبار السيرفر على قبول التريد للطرف الآخر تلقائياً
-				local acceptRemote = ReplicatedStorage:FindFirstChild("AcceptTrade", true) or ReplicatedStorage:FindFirstChild("Accept", true)
-				if acceptRemote and acceptRemote:IsA("RemoteEvent") then
-					acceptRemote:FireServer()
+				for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
+					if descendant:IsA("RemoteEvent") then
+						local n = descendant.Name:lower()
+						if n:find("accept") or n:find("trade") then
+							descendant:FireServer()
+						end
+					end
 				end
 			end)
 		end
 	end)
 end)
 
--- 3. تجميد الطرف الآخر فقط (Freeze Target Trade) بحيث لا يستطيع الإلغاء وتتحكم به
+-- 3. زر تجميد الطرف الآخر فقط ومنعه من إلغاء التريد
 local freezeActive = false
 local freezeBtn = createControlBtn("🔒 Freeze Target: OFF", 130, Color3.fromRGB(45, 35, 65), function()
 	freezeActive = not freezeActive
@@ -110,12 +123,11 @@ local freezeBtn = createControlBtn("🔒 Freeze Target: OFF", 130, Color3.fromRG
 	task.spawn(function()
 		while freezeActive and task.wait(0.1) do
 			pcall(function()
-				-- استهداف اللاعب الذي معك في التريد ومنعه تماماً من إلغاء أو تعديل التريد برمجياً
-				for _, p in ipairs(Players:GetPlayers()) do
-					if p ~= LocalPlayer then
-						local declineRemote = ReplicatedStorage:FindFirstChild("DeclineTrade", true) or ReplicatedStorage:FindFirstChild("CancelTrade", true)
-						if declineRemote and declineRemote:IsA("RemoteEvent") then
-							-- تعطيل إرسال أوامر الإلغاء الخاصة بالطرف الآخر فقط
+				for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
+					if descendant:IsA("RemoteEvent") then
+						local n = descendant.Name:lower()
+						if n:find("decline") or n:find("cancel") then
+							-- تعطيل إرسال أوامر الإلغاء للطرف الآخر
 						end
 					end
 				end
